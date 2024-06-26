@@ -2,4 +2,4 @@ fastapi
 uvicorn
 requests
 transformers
-apache-tika
+tika
