@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+requests
+transformers
+apache-tika
+Claude API access (Anthropic console) 
