@@ -101,9 +101,20 @@ Utility Functions:
 - huggingface_parser: Parses the extracted text using Huggingface transformers.
 
 ## Planned Enhancements
-- working on integrating Claude's API for more nuanced and contextual entity extraction
 - Improve the error handling for various edge cases
 - Extend the parser to handle additional entities and customizations as needed
+
+## New Features
+Enhanced Contextual Parsing: Integrates Claude's API for more nuanced and contextual entity extraction.
+
+## Updated Requirements
+Claude API access (Anthropic console)
+
+## Updated Installation Instructions
+Set up Claude API: Obtain an API key from Anthropic's console and set the environment variable:
+```bash
+export CLAUDE_API_KEY="your_api_key_here"
+```
 
 
 ## Contributing
