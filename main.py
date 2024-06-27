@@ -1,8 +1,7 @@
 from typing import List, Dict, Any
 from fastapi import FastAPI, Request, File, UploadFile, Form
 import requests
-from fastapi.responses import HTMLResponse
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 import uvicorn
 import shutil
 import os
@@ -26,66 +25,73 @@ nlp = pipeline("ner", model="dslim/bert-base-NER")
 
 app = FastAPI()
 
-@app.get('/home/', response_class=HTMLResponse)
-async def index(request: Request):
-    return "Welcome to the Resume Parser API"
+# Ensure the UPLOAD_FOLDER directory exists
+UPLOAD_FOLDER = "UPLOAD_FOLDER"
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
-@app.get('/airex/', response_class=HTMLResponse)
-async def index(request: Request):
-    return "Airex Page"
+# Configure logging
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 @app.post('/upload_resume', response_class=HTMLResponse)
 def upload_resume(pdf: UploadFile = File(default=None), resume_service_url: str = Form(default="")):
-    if pdf:
-        filename = str(pdf.filename)
-        file_ext = filename.split(".")[-1].lower()
-        with open("UPLOAD_FOLDER/" + filename, "wb") as buffer:
-            shutil.copyfileobj(pdf.file, buffer)
-        if file_ext == "pdf":
-            resume_text = tika_function(filename)
-        elif file_ext == "docx":
-            resume_text = docx_function(filename)
-        else:
-            return "Unsupported file format"
-        
-        json_data = huggingface_parser(resume_text)
-        if json_data.get('email'):
-            return json.dumps(json_data)
-        else:
-            email_rg = re.compile(r'[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+')
-            email_list = re.findall(email_rg, resume_text.lower())
-            if email_list:
-                json_data['email'] = email_list[0]
-            return json.dumps(json_data)
-
-    elif resume_service_url:
-        url = resume_service_url
-        try:
-            r = requests.get(url, allow_redirects=True)
-            filename = "resume_document.pdf" if url.endswith(".pdf") else "resume_document.docx"
-            open("UPLOAD_FOLDER/" + filename, "wb").write(r.content)
-            r.close()
-            if filename.endswith(".pdf"):
+    try:
+        if pdf:
+            filename = str(pdf.filename)
+            file_ext = filename.split(".")[-1].lower()
+            with open(os.path.join(UPLOAD_FOLDER, filename), "wb") as buffer:
+                shutil.copyfileobj(pdf.file, buffer)
+            
+            if file_ext == "pdf":
                 resume_text = tika_function(filename)
-            elif filename.endswith(".docx"):
+            elif file_ext == "docx":
                 resume_text = docx_function(filename)
             else:
                 return "Unsupported file format"
             
             json_data = huggingface_parser(resume_text)
-            json_data['resume_service_url'] = url
             if json_data.get('email'):
                 return json.dumps(json_data)
             else:
-                email_rg = re.compile(r'[a-z0-9\.\-+_]+@[a.z0-9\.\-+_]+\.[a-z]+')
+                email_rg = re.compile(r'[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+')
                 email_list = re.findall(email_rg, resume_text.lower())
                 if email_list:
                     json_data['email'] = email_list[0]
                 return json.dumps(json_data)
-        except:
-            return "INVALID URL"
-    else:
-        return "Input Missing, Resume Document or Resume URL is Required for Processing"
+
+        elif resume_service_url:
+            url = resume_service_url
+            try:
+                r = requests.get(url, allow_redirects=True)
+                filename = "resume_document.pdf" if url.endswith(".pdf") else "resume_document.docx"
+                with open(os.path.join(UPLOAD_FOLDER, filename), "wb") as buffer:
+                    buffer.write(r.content)
+                r.close()
+                
+                if filename.endswith(".pdf"):
+                    resume_text = tika_function(filename)
+                elif filename.endswith(".docx"):
+                    resume_text = docx_function(filename)
+                else:
+                    return "Unsupported file format"
+                
+                json_data = huggingface_parser(resume_text)
+                json_data['resume_service_url'] = url
+                if json_data.get('email'):
+                    return json.dumps(json_data)
+                else:
+                    email_rg = re.compile(r'[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+')
+                    email_list = re.findall(email_rg, resume_text.lower())
+                    if email_list:
+                        json_data['email'] = email_list[0]
+                    return json.dumps(json_data)
+            except:
+                return "INVALID URL"
+        else:
+            return "Input Missing, Resume Document or Resume URL is Required for Processing"
+    except Exception as e:
+        logging.error(f"Error processing resume: {str(e)}")
+        return JSONResponse(status_code=500, content={"message": "Internal Server Error"})
 
 def tika_function(pdf_filename):
     if pdf_filename:
