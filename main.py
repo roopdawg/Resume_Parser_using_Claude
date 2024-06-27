@@ -81,7 +81,7 @@ def upload_resume(pdf: UploadFile = File(default=None), resume_service_url: str 
 
 def tika_function(pdf_filename):
     if pdf_filename:
-        parsed_doc = tika_parser.from_file('UPLOAD_FOLDER/' + str(pdf_filename), service="text")
+        parsed_doc = tika_parser.from_file('UPLOAD_FOLDER/' + str(pdf_filename))
         try:
             text = parsed_doc['content'].strip('\n')
             return text
@@ -185,3 +185,4 @@ def validate_data(jsondata):
 
 if __name__ == "__main__":
     uvicorn.run(app, host='0.0.0.0', port=8080)
+
