@@ -7,7 +7,7 @@ This project provides an API to upload resumes in PDF format, parse them using H
 
 ## Features
 
-- Upload resumes in PDF format.
+- Handles resumes in both PDF and DOCX formats.
 - Extracts and parses resume content using Huggingface transformers.
 - Retrieves key information such as personal details, skills, experiences, education, and more.
 - Provides endpoints for both file upload and URL-based resume fetching.
@@ -21,6 +21,7 @@ This project provides an API to upload resumes in PDF format, parse them using H
 - Apache Tika
 - Requests
 - Jinja2Templates
+- python-docx==0.8.11
 
 ## Installation
 
