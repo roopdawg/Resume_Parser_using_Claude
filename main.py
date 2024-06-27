@@ -7,7 +7,8 @@ import shutil
 import os
 import re
 from transformers import pipeline
-from tika import parser
+from tika import parser as tika_parser
+from docx import Document
 import json
 import jsonschema
 from dateutil import parser as dateparser
@@ -29,9 +30,16 @@ async def index(request: Request):
 def upload_resume(pdf: UploadFile = File(default=None), resume_service_url: str = Form(default="")):
     if pdf:
         filename = str(pdf.filename)
+        file_ext = filename.split(".")[-1].lower()
         with open("UPLOAD_FOLDER/" + filename, "wb") as buffer:
             shutil.copyfileobj(pdf.file, buffer)
-        resume_text = tika_function(filename)
+        if file_ext == "pdf":
+            resume_text = tika_function(filename)
+        elif file_ext == "docx":
+            resume_text = docx_function(filename)
+        else:
+            return "Unsupported file format"
+        
         json_data = huggingface_parser(resume_text)
         if json_data.get('email'):
             return json.dumps(json_data)
@@ -46,16 +54,22 @@ def upload_resume(pdf: UploadFile = File(default=None), resume_service_url: str 
         url = resume_service_url
         try:
             r = requests.get(url, allow_redirects=True)
-            filename = "resume_document.pdf"
+            filename = "resume_document.pdf" if url.endswith(".pdf") else "resume_document.docx"
             open("UPLOAD_FOLDER/" + filename, "wb").write(r.content)
             r.close()
-            resume_text = tika_function(filename)
+            if filename.endswith(".pdf"):
+                resume_text = tika_function(filename)
+            elif filename.endswith(".docx"):
+                resume_text = docx_function(filename)
+            else:
+                return "Unsupported file format"
+            
             json_data = huggingface_parser(resume_text)
             json_data['resume_service_url'] = url
             if json_data.get('email'):
                 return json.dumps(json_data)
             else:
-                email_rg = re.compile(r'[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+')
+                email_rg = re.compile(r'[a-z0-9\.\-+_]+@[a.z0-9\.\-+_]+\.[a-z]+')
                 email_list = re.findall(email_rg, resume_text.lower())
                 if email_list:
                     json_data['email'] = email_list[0]
@@ -67,12 +81,20 @@ def upload_resume(pdf: UploadFile = File(default=None), resume_service_url: str 
 
 def tika_function(pdf_filename):
     if pdf_filename:
-        parsed_doc = parser.from_file('UPLOAD_FOLDER/' + str(pdf_filename), service="text")
+        parsed_doc = tika_parser.from_file('UPLOAD_FOLDER/' + str(pdf_filename), service="text")
         try:
             text = parsed_doc['content'].strip('\n')
             return text
         except:
             return 'No Valid file Selected!'
+
+def docx_function(docx_filename):
+    if docx_filename:
+        doc = Document('UPLOAD_FOLDER/' + str(docx_filename))
+        full_text = []
+        for para in doc.paragraphs:
+            full_text.append(para.text)
+        return '\n'.join(full_text)
 
 def huggingface_parser(text: str) -> Dict[str, Any]:
     entities = nlp(text)
@@ -110,13 +132,11 @@ def huggingface_parser(text: str) -> Dict[str, Any]:
 def parse_with_claude(text: str) -> Dict[str, Any]:
     # Use the Claude API to parse the text and extract additional information
     api_url = "https://api.anthropic.com/v1/claude"
-    headers = {"Authorization": "Bearer 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"}
+    headers = {"Authorization": "Bearer YOUR_CLAUDE_API_KEY"}
     data = {"text": text}
     response = requests.post(api_url, headers=headers, json=data)
     return response.json()
 
-
-# Based on the results, may need to fine-tune the merging logic in refine_parsed_data and adjust the extraction logic to better capture specific details
 def refine_parsed_data(parsed_data: Dict[str, Any], claude_data: Dict[str, Any]) -> Dict[str, Any]:
     # Refine and merge data from Huggingface and Claude
     final_response = parsed_data
