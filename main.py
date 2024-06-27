@@ -110,11 +110,13 @@ def huggingface_parser(text: str) -> Dict[str, Any]:
 def parse_with_claude(text: str) -> Dict[str, Any]:
     # Use the Claude API to parse the text and extract additional information
     api_url = "https://api.anthropic.com/v1/claude"
-    headers = {"Authorization": "Bearer YOUR_CLAUDE_API_KEY"}
+    headers = {"Authorization": "Bearer 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"}
     data = {"text": text}
     response = requests.post(api_url, headers=headers, json=data)
     return response.json()
 
+
+# Based on the results, may need to fine-tune the merging logic in refine_parsed_data and adjust the extraction logic to better capture specific details
 def refine_parsed_data(parsed_data: Dict[str, Any], claude_data: Dict[str, Any]) -> Dict[str, Any]:
     # Refine and merge data from Huggingface and Claude
     final_response = parsed_data
