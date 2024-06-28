@@ -14,12 +14,6 @@ import jsonschema
 from dateutil import parser as dateparser
 import logging
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
-UPLOAD_FOLDER = "UPLOAD_FOLDER"
-if not os.path.exists(UPLOAD_FOLDER): 
-    os.makedirs(UPLOAD_FOLDER)
-
 # Initialize Huggingface pipeline for entity recognition
 nlp = pipeline("ner", model="dslim/bert-base-NER")
 
