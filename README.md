@@ -61,7 +61,7 @@ java -jar tika-server-1.24.jar
    uvicorn main:app --host 0.0.0.0 --port 8080
    ```
 
-Usage
+#Usage
 
 Uploading Resumes
 Endpoint: /upload_resume
@@ -77,49 +77,35 @@ query: The job description or candidate query text.
 Example
 Upload a Resume:
 
-bash
-Copy code
+```bash
 curl -X POST "http://localhost:8080/upload_resume" -F "pdf=@/path/to/your/resume.pdf"
+```
+
 Query Resumes:
 
-bash
-Copy code
+```bash
 curl -X POST "http://localhost:8080/query_resumes" -H "Content-Type: application/json" -d '{"query": "Looking for a software engineer with experience in Python and machine learning"}'
-Code Structure
+```
 
+# Code Structure
 main.py: Contains the FastAPI application and endpoints.
 requirements.txt: Lists all the required Python packages.
 UPLOAD_FOLDER/: Directory where uploaded resumes are stored.
-Ethical Considerations
 
-Storing and processing resumes involves handling sensitive personal data. Ensure compliance with data protection regulations such as GDPR and CCPA. Obtain explicit consent from individuals before storing their data in the system. Implement robust security measures to protect the data.
-
-Choosing a Vector Database
-
+## Choosing a Vector Database
 Pinecone vs. FAISS vs. Chroma DB
-Pinecone:
-
+###Pinecone:
 Fully managed, scalable, and optimized for high-performance vector search.
 Best for cloud-based applications where scalability and ease of use are crucial.
-FAISS:
 
+###FAISS:
 Open-source library optimized for efficient similarity search.
 Best for local deployments or when you need full control over the infrastructure.
-Chroma DB:
 
+###Chroma DB:
 An open-source database focusing on vector embeddings and retrieval.
 Suitable for projects that prefer open-source solutions and need a specialized vector database.
-Recommendation: For a production-ready, scalable solution, Pinecone is recommended due to its ease of integration and management. However, for cost-sensitive projects or local deployments, FAISS or Chroma DB might be more appropriate.
 
-Storing Private Data in a Vector Database
-Storing private data in a vector database is ethical as long as you adhere to data protection regulations and obtain explicit consent from the data owners. Ensure that:
-
+###Storing Private Data in a Vector Database
 Data is encrypted both in transit and at rest.
 Access controls are in place to restrict unauthorized access.
-Data retention policies are clearly defined and followed.
-Users are informed about how their data will be used and stored.
-Always prioritize user privacy and data security in your implementation.
-
-
-
-
