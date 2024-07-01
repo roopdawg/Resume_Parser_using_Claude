@@ -5,9 +5,9 @@ This project is a resume parsing and matching system using FastAPI, Apache Tika,
 ## Features
 
 - **Resume Upload**: Supports PDF and DOCX resume uploads.
-- **Parsing with Claude**: Utilizes the Claude API for extracting structured data from resumes.
-- **Vector Storage with Pinecone**: Stores resume vectors for efficient similarity search.
-- **Query Matching**: Retrieves top matching resumes based on job descriptions or candidate queries.
+- **Parsing with Claude [NOT COMPLETED]**: Utilizes the Claude API for extracting structured data from resumes.
+- **Vector Storage with Pinecone [NOT FINALIZED]**: Stores resume vectors for efficient similarity search.
+- **Query Matching [NOT COMPLETED - NEED TO COLLABORATE WITH RAILS ENGINEER]**: Retrieves top matching resumes based on job descriptions or candidate queries.
 
 ## Prerequisites
 
