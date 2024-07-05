@@ -6,6 +6,7 @@ import json
 api_url = "http://localhost:8080/upload_resume"
 
 # Directory containing the resume PDF files
+# text Roopa to get this test resume directory shared to you and replace it with your downloaded directory path
 resume_dir = "/Users/sreeroopasom/Documents/ResumeBank"
 
 # Loop through each file in the resume directory
