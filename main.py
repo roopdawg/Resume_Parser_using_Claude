@@ -13,9 +13,8 @@ import jsonschema
 import logging
 from transformers import AutoModel, AutoTokenizer
 import torch
-import pinecone
 import faiss
-import numpy as np
+import pinecone
 
 app = FastAPI()
 
@@ -26,6 +25,31 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 # Configure logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Initialize FAISS index
+dimension = 768  # Example dimension, should match your embedding model output
+index = faiss.IndexFlatL2(dimension)
+
+# Initialize Pinecone
+pinecone.init(api_key="YOUR_PINECONE_API_KEY")
+index_name = "resume-index"
+if index_name not in pinecone.list_indexes():
+    pinecone.create_index(index_name, dimension=dimension)
+pinecone_index = pinecone.Index(index_name)
+
+# Initialize embedding model
+class Embedder:
+    def __init__(self, model_name="sentence-transformers/all-mpnet-base-v2"):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name)
+
+    def embed(self, text):
+        inputs = self.tokenizer(text, return_tensors='pt', truncation=True, padding=True)
+        with torch.no_grad():
+            embeddings = self.model(**inputs).last_hidden_state[:, 0, :]
+        return embeddings.numpy()
+
+embedder = Embedder()
 
 @app.post('/upload_resume', response_class=HTMLResponse)
 def upload_resume(pdf: UploadFile = File(default=None), resume_service_url: str = Form(default="")):
@@ -43,8 +67,9 @@ def upload_resume(pdf: UploadFile = File(default=None), resume_service_url: str 
             else:
                 return "Unsupported file format"
             
-            claude_data = parse_with_claude(resume_text)
-            return JSONResponse(content=claude_data)
+            # Index resume in FAISS and Pinecone
+            index_resume(filename, resume_text)
+            return JSONResponse(content={"message": "Resume uploaded and indexed successfully."})
 
         elif resume_service_url:
             url = resume_service_url
@@ -62,8 +87,9 @@ def upload_resume(pdf: UploadFile = File(default=None), resume_service_url: str 
                 else:
                     return "Unsupported file format"
                 
-                claude_data = parse_with_claude(resume_text)
-                return JSONResponse(content=claude_data)
+                # Index resume in FAISS and Pinecone
+                index_resume(filename, resume_text)
+                return JSONResponse(content={"message": "Resume uploaded and indexed successfully."})
             except:
                 return "INVALID URL"
         else:
@@ -89,89 +115,39 @@ def docx_function(docx_filename):
             full_text.append(para.text)
         return '\n'.join(full_text)
 
-def extract_text(file_path):
-    ext = file_path.split('.')[-1].lower()
-    if ext == 'pdf':
-        return tika_function(file_path)
-    elif ext == 'docx':
-        return docx_function(file_path)
-    else:
-        raise ValueError('Unsupported file format')
+def index_resume(resume_id, resume_text):
+    vector = embedder.embed(resume_text)
+    faiss.normalize_L2(vector)
+    index.add(vector)
+    pinecone_index.upsert([(resume_id, vector.tolist())])
+
+def search_resumes(query, top_k=5):
+    query_vector = embedder.embed(query)
+    faiss.normalize_L2(query_vector)
+    D, I = index.search(query_vector, top_k)
+    return I
+
+def re_rank_with_claude(resumes, query):
+    context = query + "\n\n" + "\n\n".join(resumes)
+    return parse_with_claude(context)
 
 def parse_with_claude(text):
     api_url = "https://api.anthropic.com/v1/claude"
-    headers = {"Authorization": "Bearer CLAUDE_API_KEY"}
+    headers = {"Authorization": "Bearer YOUR_CLAUDE_API_KEY"}
     data = {"text": text}
     response = requests.post(api_url, headers=headers, json=data)
     return response.json()
 
-class Embedder:
-    def __init__(self, model_name="sentence-transformers/all-mpnet-base-v2"):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name)
-
-    def embed(self, text):
-        inputs = self.tokenizer(text, return_tensors='pt', truncation=True, padding=True)
-        with torch.no_grad():
-            embeddings = self.model(**inputs).last_hidden_state[:, 0, :]
-        return embeddings.numpy()
-
-embedder = Embedder()
-
-pinecone.init(api_key="YOUR_PINECONE_API_KEY")
-index_name = "resume-index"
-if index_name not in pinecone.list_indexes():
-    pinecone.create_index(index_name, dimension=768)
-index = pinecone.Index(index_name)
-
-def index_resume(resume_id, resume_text):
-    vector = embedder.embed(resume_text)
-    index.upsert([(resume_id, vector)])
-
-def search_resumes(query, top_k=5):
-    query_vector = embedder.embed(query)
-    results = index.query(query_vector, top_k=top_k)
-    return results
-
-def generate_response(query, top_k=5):
-    search_results = search_resumes(query, top_k)
-    retrieved_resumes = [result['text'] for result in search_results['matches']]
-    context = query + "\n\n".join(retrieved_resumes)
-    final_response = parse_with_claude(context)
-    return final_response
-
-# Setting up FAISS index
-d = 768  # Dimensionality of the embeddings
-index_faiss = faiss.IndexFlatL2(d)
-
-def index_resume_faiss(resume_id, resume_text):
-    vector = embedder.embed(resume_text)
-    faiss.normalize_L2(vector)
-    index_faiss.add(vector)
-
-def search_resumes_faiss(query, top_k=5):
-    query_vector = embedder.embed(query)
-    faiss.normalize_L2(query_vector)
-    D, I = index_faiss.search(query_vector, top_k)
-    return I
-
-def combined_ranking(query, top_k=5):
-    pinecone_results = search_resumes(query, top_k)
-    faiss_results = search_resumes_faiss(query, top_k)
-    
-    # Merging results
-    combined_results = list(set(pinecone_results['matches']).union(set(faiss_results)))
-    
-    # Final scoring with Claude
-    final_results = []
-    for result in combined_results:
-        result_text = result['text'] if isinstance(result, dict) else result  # Handle different result formats
-        score = parse_with_claude(result_text)
-        final_results.append((result, score))
-    
-    # Sorting final results by score
-    final_results.sort(key=lambda x: x[1], reverse=True)
-    return final_results
+@app.post('/search_resumes', response_class=JSONResponse)
+def search_and_rank(query: str, top_k: int = 5):
+    try:
+        initial_results = search_resumes(query, top_k)
+        resumes = [tika_function(f'resume_{i}.pdf') for i in initial_results]
+        final_ranking = re_rank_with_claude(resumes, query)
+        return JSONResponse(content=final_ranking)
+    except Exception as e:
+        logging.error(f"Error searching resumes: {str(e)}")
+        return JSONResponse(status_code=500, content={"message": "Internal Server Error"})
 
 if __name__ == "__main__":
     uvicorn.run(app, host='0.0.0.0', port=8080)
