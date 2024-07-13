@@ -7,3 +7,8 @@ jsonschema==3.2.0
 python-docx==0.8.11
 python-dateutil==2.8.2
 torch
+faiss-cpu
+rank_bm25
+pandas
+nltk
+anthropic
