@@ -23,4 +23,3 @@ class FAISSRetrieval:
         query_embedding = self.text_to_embedding(query)
         distances, indices = index.search(query_embedding, top_n)
         return indices[0], distances[0]
-
