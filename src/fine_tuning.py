@@ -1,5 +1,3 @@
-# Huggingface??? 
-
 from transformers import Trainer, TrainingArguments, AutoModelForSequenceClassification, AutoTokenizer
 from datasets import Dataset
 
@@ -31,5 +29,6 @@ def fine_tune_model(train_texts, train_labels, model_name='bert-base-uncased', n
     )
 
     trainer.train()
+    model.save_pretrained("./fine_tuned_model")
+    tokenizer.save_pretrained("./fine_tuned_model")
     return model, tokenizer
-
