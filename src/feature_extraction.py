@@ -25,5 +25,3 @@ def extract_features_with_claude(text, context_type):
         max_tokens=300
     )
     return response["completion"]
-
-
