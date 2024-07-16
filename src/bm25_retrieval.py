@@ -8,4 +8,3 @@ def bm25_retrieval(query, documents, top_n=10):
     scores = bm25.get_scores(tokenized_query)
     top_n_indices = np.argsort(scores)[-top_n:]
     return top_n_indices, scores[top_n_indices]
-
