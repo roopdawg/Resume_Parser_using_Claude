@@ -12,3 +12,6 @@ rank_bm25
 pandas
 nltk
 anthropic
+transformers
+torch
+anthropic
