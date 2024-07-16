@@ -5,6 +5,7 @@ from bm25_retrieval import bm25_retrieval
 from faiss_retrieval import FAISSRetrieval
 from feature_extraction import extract_features_with_claude
 import uvicorn
+import joblib
 
 app = FastAPI()
 
