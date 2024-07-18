@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI Recruiter project leverages state-of-the-art Natural Language Processing (NLP) techniques to match resumes to job descriptions. The system uses a combination of BM25 for initial candidate retrieval, FAISS for semantic similarity, and Anthropic's Claude for feature extraction to enhance candidate profiles. The model is fine-tuned iteratively with recruiter feedback to continuously improve its performance.
+The AI Recruiter project leverages state-of-the-art Natural Language Processing (NLP) techniques to match resumes to job descriptions. The system uses a combination of BM25 for initial candidate retrieval, FAISS for semantic similarity, and Anthropic's Claude for interacting with the user (user query in natural language) and showing the criteria that the candidate does/doesn't match on. The model is fine-tuned iteratively with recruiter feedback to continuously improve its performance.
 
 ## Methodology
 
@@ -13,14 +13,15 @@ The AI Recruiter project leverages state-of-the-art Natural Language Processing 
    - Provides an initial set of candidate matches.
 
 2. **FAISS Retrieval**:
-   - Generates embeddings for resumes and job descriptions using a pre-trained BERT model.
+   - Generates embeddings for resumes and job descriptions + notes using a pre-trained BERT model.
    - Uses FAISS (Facebook AI Similarity Search) to perform vector-based similarity search, refining the initial BM25 results.
 
 ### Feature Extraction
 
 - **Anthropic's Claude**:
-  - Enhances candidate profiles by extracting detailed features such as skills, job titles, experience, education, and specific requirements.
+  - Interacts with the user to obtain the ideal candidate query in natural language + job description upload
   - Provides a comprehensive understanding of each candidate's qualifications.
+  - TODO:  Enhances candidate profiles by extracting detailed features such as skills, job titles, experience, education, and specific requirements from the job description uploaded
 
 ### Fine-Tuning with Feedback
 
